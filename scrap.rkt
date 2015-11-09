@@ -28,7 +28,7 @@ class macro to include support for traits and some basic introspection.
 
 
 ; QUESTION 2 (traits).
-; Problem: Does not overwrite default methods
+
 ; Do we need a case without (with)???? <-----------------
 (define-syntax class-trait
   (syntax-rules (with)
@@ -47,80 +47,91 @@ class macro to include support for traits and some basic introspection.
      (define (<Class> <attr> ...)
        (lambda (msg)
          (let ([obj (temp-obj <Class> (<attr> ...)
-                              [(<method> <param> ...) <body>] ...
-                              )]
-               [blank-obj (temp-obj)])
-           (let ([ret (eager-eval blank-obj msg <trait> ...)])
-             (if (equal? ret "not a trait")
-                 (eager-eval obj msg <trait> ...)
-                 ret))
-          
-           )
-         
-         ))]
+           [(<method> <param> ...) <body>]
+                              ...)])
+           ((<trait> obj) msg) ...)
+         )
+       
+       
+       )]
     ))
 
-(define-syntax eager-eval
-  (syntax-rules (stop)
-    [(eager-eval stop <val>)
-     <val>]
-    [(eager-eval <obj> <msg> <trait>)
-     ((<trait> <obj>) <msg>)]
-    [(eager-eval <obj> <msg> <first> <trait> ...)
-     (if (equal? ((<first> <obj>) <msg>) "not a trait")
-         (eager-eval <obj> <msg> <trait> ...)
-         (eager-eval stop ((<first> <obj>) <msg>)))]))
 
 (define-syntax temp-obj
   (syntax-rules ()
-    [(temp-obj)
-     (lambda (msg)
-       "not a trait")]
     [(temp-obj <Class> (<attr> ...)
-               [(<method> <param> ...) <body>] ...)
+      [(<method> <param> ...) <body>] ...)
      (lambda(msg)
-       (cond [(equal? msg (id->string <attr>)) <attr>]
-             ...
-             [(equal? msg (id->string <method>))
-              (lambda (<param> ...) <body>)]
-             ...
-             [else "Unrecognized message!"]))
-     ]))
+         (cond [(equal? msg (id->string <attr>)) <attr>]
+               ...
+               [(equal? msg (id->string <method>))
+                (lambda (<param> ...) <body>)]
+               ...
+               [else "Unrecognized message!"]))
+       ]))
 
-(class-trait Point (x y) (with simple-trait overlap-trait later-trait overwrite-trait)
+
+
+(class-trait Point (x y) (with simple-trait)
              [(distance other-point)
               (let ([dx (- x (other-point "x"))]
                     [dy (- y (other-point "y"))])
                 (sqrt (+ (* dx dx) (* dy dy))))])
 
+
 (define p1 (Point 1 1))
 (define p2 (Point 1 2))
+
+
+(define-syntax make-obj
+  (syntax-rules ()
+    [(make-obj <Class>
+               [(<method> <param> ...) <body>] ...)
+     (lambda (msg)
+       (cond [(equal? msg (id->string <method>))
+              (lambda (<param> ...) <body>)]
+             ...
+             [else "Unrecognized message!"]))]
+    ))
 
 (define (simple-trait obj)
   (lambda (msg)
     (if (equal? msg "1")
-        "one"
+        "1"
         (obj msg))))
 
-(define (overlap-trait obj)
+;(define simpleObj (make-obj simple [(plus1 x) (+ 1 x)]))
+
+(define (distance-trait obj)
   (lambda (msg)
-    (if (equal? msg "1")
-        "overlap"
-        (obj msg))))
+    (cond [(equal? msg "distance-to-self")
+           (lambda () ((obj "distance") obj))]
+          [(equal? msg "closer")
+           (lambda (obj1 obj2)
+             (if (<= ((obj "distance") obj1)
+                     ((obj "distance") obj2))
+                 obj1
+                 obj2))]
+          [else (obj msg)])))
 
-(define (overwrite-trait obj)
+
+
+
+
+(define t1 (make-obj test1 [(greet x y) (lambda (msg)
+                                          (if (equal? msg "on")
+                                              x
+                                              y))]))
+
+
+(define (test-trait obj)
   (lambda (msg)
-    (if (equal? msg "x")
-        "overwrites"
+    (if (equal? msg "newFunc")
+        "true"
         (obj msg))))
 
-(define (later-trait obj)
-  (lambda (msg)
-    (if (equal? msg "a")
-        "A"
-        (obj msg))))
+(define tt1 (test-trait t1))
 
-(p1 "1")
 ; -----------------------------------------------------------------------------
 ; Class macro. This section is just for your reference.
 ; -----------------------------------------------------------------------------
