@@ -62,7 +62,7 @@
              [p2 (Point 15 40)])
         ((p1 "distance-plus") p2 20))
       35)
-#|
+
 ; Tests for Question 1
 
 (class-meta Point-meta (x y)
@@ -101,4 +101,3 @@
 (test (let ([p (A-meta 1 2 3)])
         (map first (p "_methods")))
       '("black" "white"))
-|#

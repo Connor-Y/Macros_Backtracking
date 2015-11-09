@@ -48,46 +48,43 @@ class macro to include support for traits and some basic introspection.
        (lambda (msg)
          (let ([obj (temp-obj <Class> (<attr> ...)
                               [(<method> <param> ...) <body>] ...
-                              )]
-               [blank-obj (temp-obj)])
-           (let ([ret (eager-eval blank-obj msg <trait> ...)])
-             (if (equal? ret "not a trait")
+                              )])
+           (let ([ret (eager-eval obj msg <trait> ...)])
+             (if (equal? ret "Unrecognized message!")
                  (eager-eval obj msg <trait> ...)
                  ret))
-          
+           
            )
          
          ))]
     ))
 
 (define-syntax eager-eval
-  (syntax-rules (stop)
+  (syntax-rules ()
     [(eager-eval stop <val>)
      <val>]
     [(eager-eval <obj> <msg> <trait>)
      ((<trait> <obj>) <msg>)]
     [(eager-eval <obj> <msg> <first> <trait> ...)
-     (if (equal? ((<first> <obj>) <msg>) "not a trait")
+     (if (equal? ((<first> <obj>) <msg>) "Unrecognized message!")
          (eager-eval <obj> <msg> <trait> ...)
          (eager-eval stop ((<first> <obj>) <msg>)))]))
 
 (define-syntax temp-obj
   (syntax-rules ()
-    [(temp-obj)
-     (lambda (msg)
-       "not a trait")]
     [(temp-obj <Class> (<attr> ...)
                [(<method> <param> ...) <body>] ...)
      (lambda(msg)
-       (cond [(equal? msg (id->string <attr>)) <attr>]
-             ...
-             [(equal? msg (id->string <method>))
-              (lambda (<param> ...) <body>)]
-             ...
-             [else "Unrecognized message!"]))
+       (cond
+         [(equal? msg (id->string <attr>)) <attr>]
+         ...
+         [(equal? msg (id->string <method>))
+          (lambda (<param> ...) <body>)]
+         ...
+         [else "Unrecognized message!"]))
      ]))
 
-(class-trait Point (x y) (with simple-trait overlap-trait later-trait overwrite-trait)
+(class-trait Point (x y) (with distance-trait simple-trait overlap-trait later-trait overwrite-trait)
              [(distance other-point)
               (let ([dx (- x (other-point "x"))]
                     [dy (- y (other-point "y"))])
@@ -95,6 +92,18 @@ class macro to include support for traits and some basic introspection.
 
 (define p1 (Point 1 1))
 (define p2 (Point 1 2))
+
+(define (distance-trait obj)
+  (lambda (msg)
+    (cond [(equal? msg "distance-to-self")
+           (lambda () ((obj "distance") obj))]
+          [(equal? msg "closer")
+           (lambda (obj1 obj2)
+             (if (<= ((obj "distance") obj1)
+                     ((obj "distance") obj2))
+                 obj1
+                 obj2))]
+          [else (obj msg)])))
 
 (define (simple-trait obj)
   (lambda (msg)
@@ -120,7 +129,12 @@ class macro to include support for traits and some basic introspection.
         "A"
         (obj msg))))
 
+
+
+(p1 "a")
 (p1 "1")
+(p1 "x")
+((p1 "distance-to-self"))
 ; -----------------------------------------------------------------------------
 ; Class macro. This section is just for your reference.
 ; -----------------------------------------------------------------------------
