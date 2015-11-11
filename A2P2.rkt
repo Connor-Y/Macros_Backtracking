@@ -54,25 +54,36 @@ extending the functionality of the backtracking library.
     (sort-results lst)))
 
 
-
-
-(define (build-set lst1 lst2)
-  (if (or (empty? lst1) (empty? lst2))
+(define (build-set fir lst)
+  (if (empty? lst)
       '()
-      (-< lst1
-          (list (first lst1))
-          (cons (first lst1)
-                (list (first lst2)))
-          (append lst1 lst2)
-          (build-set lst1 (rest lst2))
-          (build-set (rest lst1) lst2)
-          (build-set (remove (last lst1) lst1) lst2)
+      (-< lst
+          (list fir)
+          (cons fir lst)
+          (build-set fir (permutation (rest lst)))
+
           )))
 
 
+(define (insert lst val)
+  (if (empty? lst)
+      (list val)
+      (-< (cons val lst)
+          (cons (first lst)
+                (insert (rest lst) val)))))
 
+
+(define (permutation lst)
+  (if (empty? lst)
+      '()
+      (insert (permutation (rest lst))
+              (first lst))))
+
+;Note that I've used set! here
+;It is used only to keep track of the solutions already
+;computed.
 (define (sort-results lst)
-  (let ([res (sort (build-set lst lst) <)])
+  (let ([res (sort (build-set (first lst) lst) <)])
     (if (or (in-list? acc res) (duplicate-id res))
         (next)
         (begin
@@ -80,7 +91,6 @@ extending the functionality of the backtracking library.
           (if (equal? res "false.")
               (void)
               res)))))
-
 
 
 ;(sort-results lst3)
@@ -114,7 +124,7 @@ extending the functionality of the backtracking library.
       (if (equal? (first lst) "")
           (board-helper (rest lst) (append acc (list (-< 1 2 3 4))))
           (board-helper (rest lst) (append acc (list (first lst)))))))
-      
+
 
 (define (constraints board)
   (let ([c1 (list (first (first board)) (first (second board))
@@ -189,4 +199,18 @@ extending the functionality of the backtracking library.
 |#
 (define-syntax fold-<
   (syntax-rules ()
+    [(fold-< <combie> <init>)
+     <init>]
+    [(fold-< <combine> <init> <expr>)
+     (let ([res (next)])
+       (if (equal? res "false.")
+           <init>           
+           (fold-< <combine> (<combine> <expr> <init>) (next))))]
+    [(fold-< <combine> <init> <expr> <rest> ...)
+     (fold-< <combine> (<combine> <expr> <init>) <rest> ...)]
     ))
+
+
+
+ 
+
